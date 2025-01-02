@@ -1,7 +1,8 @@
 use bytes::Bytes;
 use core::fmt;
+use std::net::SocketAddr;
 
-use crate::{http::setup_http_listener, mdns::run_mdns};
+use crate::{crypto::generate_tls_config, http::setup_app, mdns::run_mdns};
 
 type Result<T> = std::result::Result<T, ZserveError>;
 
@@ -9,6 +10,7 @@ type Result<T> = std::result::Result<T, ZserveError>;
 pub enum ZserveError {
     MdnsError(String),
     FileError(String),
+    CertificateError(String),
 }
 
 impl From<mdns_sd::Error> for ZserveError {
@@ -23,6 +25,12 @@ impl From<std::io::Error> for ZserveError {
     }
 }
 
+impl From<rcgen::Error> for ZserveError {
+    fn from(value: rcgen::Error) -> Self {
+        Self::CertificateError(value.to_string())
+    }
+}
+
 impl fmt::Display for ZserveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -31,6 +39,7 @@ impl fmt::Display for ZserveError {
             match self {
                 ZserveError::MdnsError(s) => s,
                 ZserveError::FileError(s) => s,
+                ZserveError::CertificateError(s) => s,
             }
         )
     }
@@ -55,9 +64,14 @@ impl Server {
         // this just starts a background thread
         let _mdns = run_mdns(&self.name, self.port)?;
 
-        let (app, listener) = setup_http_listener(file, self.port)?;
+        let app = setup_app(file)?;
 
-        axum::serve(listener.await?, app).await?;
+        let socket_addr = SocketAddr::from(([0, 0, 0, 0], self.port));
+        let tls_conf = generate_tls_config().await?;
+
+        axum_server::bind_rustls(socket_addr, tls_conf)
+            .serve(app.into_make_service())
+            .await?;
 
         Ok(())
     }

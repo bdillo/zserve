@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use axum::{
     body,
     extract::State,
@@ -9,24 +7,11 @@ use axum::{
     Router,
 };
 use bytes::Bytes;
-use tokio::net::TcpListener;
 
 use crate::server::ZserveError;
 
-pub fn setup_http_listener(
-    file: Bytes,
-    port: u16,
-) -> Result<
-    (
-        Router,
-        impl Future<Output = Result<TcpListener, std::io::Error>>,
-    ),
-    ZserveError,
-> {
-    let app: Router = Router::new().route("/", get(serve_file)).with_state(file);
-
-    let listener = tokio::net::TcpListener::bind(("0.0.0.0", port));
-    Ok((app, listener))
+pub fn setup_app(file: Bytes) -> Result<Router, ZserveError> {
+    Ok(Router::new().route("/", get(serve_file)).with_state(file))
 }
 
 async fn serve_file(State(state): State<Bytes>) -> impl IntoResponse {
