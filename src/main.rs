@@ -7,7 +7,7 @@ use tracing::{info, level_filters::LevelFilter};
 use zserve::server::Server;
 
 #[derive(Debug, Parser)]
-#[command(about = "Serves a file over HTTPS, discoverable via MDNS")]
+#[command(about = "Serves a file over HTTPS, discoverable via mDNS")]
 struct Args {
     #[arg(short, long)]
     file: PathBuf,
