@@ -1,4 +1,4 @@
-use std::{fs, net::IpAddr, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use bytes::Bytes;
 use clap::Parser;
@@ -11,20 +11,19 @@ struct Args {
     file: PathBuf,
     #[arg(short, long, default_value_t = 8443)]
     port: u16,
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
+    #[arg(short, long, default_value = "zserve")]
+    name: String,
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let args = Args::parse();
-
     env_logger::init();
 
-    // TODO: move to clap args
-    let ip_addr: IpAddr = "192.168.1.4".parse().expect("Failed to parse ip addr!");
-
     let file_contents = Bytes::from(fs::read(args.file).expect("Failed to read file!"));
-
-    let server = Server::new(ip_addr, args.port);
+    let server = Server::new(&args.name, args.port);
 
     server
         .run(file_contents)

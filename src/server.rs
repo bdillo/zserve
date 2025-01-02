@@ -1,7 +1,5 @@
-use core::fmt;
-use std::net::IpAddr;
-
 use bytes::Bytes;
+use core::fmt;
 
 use crate::{http::setup_http_listener, mdns::run_mdns};
 
@@ -41,17 +39,21 @@ impl fmt::Display for ZserveError {
 impl std::error::Error for ZserveError {}
 
 pub struct Server {
-    ip_addr: IpAddr,
+    name: String,
     port: u16,
 }
 
 impl Server {
-    pub fn new(ip_addr: IpAddr, port: u16) -> Self {
-        Self { ip_addr, port }
+    pub fn new(name: &str, port: u16) -> Self {
+        Self {
+            name: name.to_owned(),
+            port,
+        }
     }
 
     pub async fn run(&self, file: Bytes) -> Result<()> {
-        let _mdns = run_mdns(&self.ip_addr, self.port)?;
+        // this just starts a background thread
+        let _mdns = run_mdns(&self.name, self.port)?;
 
         let (app, listener) = setup_http_listener(file, self.port)?;
 
